@@ -1,4 +1,5 @@
 import { createRequire } from "node:module";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { UUID } from "node:crypto";
 import type {
@@ -35,6 +36,18 @@ import { createUserSDKMessage } from "@/shared/utils/message";
 // through Electron's asar layer, so the kernel returns ENOTDIR. Resolve once
 // and rewrite to the .unpacked sibling directory where the binary actually
 // lives. In dev (no asar in the path), the replace is a no-op.
+// A workspace can tell the agent what it is built with (another framework, its
+// own design system) in an AGENTS.md at its root. Missing or unreadable, nothing.
+const readWorkspaceInstructions = (workspacePath: string) => {
+  let text = "";
+  try {
+    text = readFileSync(path.join(workspacePath, "AGENTS.md"), "utf-8");
+  } catch {
+    // No instructions: the rules above stand.
+  }
+  return text.trim() ? `\nWORKSPACE INSTRUCTIONS (AGENTS.md, from the workspace; they override the rules above where they differ):\n${text.trim()}\n` : "";
+};
+
 export const claudeCodeExecutablePath = ((): string | undefined => {
   const requireFromHere = createRequire(import.meta.url);
   const { platform, arch } = process;
@@ -264,6 +277,7 @@ export const sendMessage = (params: {
       canUseTool,
     } = params;
     const workspacePath = getWorkspaceSourcePath(workspaceId);
+    const workspaceInstructions = readWorkspaceInstructions(workspacePath);
 
     const res = query({
       prompt: promptStream.prompt,
@@ -303,7 +317,7 @@ export const sendMessage = (params: {
         systemPrompt: {
           preset: "claude_code",
           type: "preset",
-          append: `You are a design agent named antidraw powered by claude code. Your goal is to vibe code react components from instructions of designers.
+          append: `You are a design agent named antidraw powered by claude code. Your goal is to vibe code UI components from instructions of designers, in the workspace's framework (React unless its instructions below say otherwise).
 
 You have access to a vite project. antidraw runs its dev server; the mcp__workspace_dev_server__get_dev_server_info tool reports its status, URL and log file.
 
@@ -337,7 +351,7 @@ DESIGN EDITS THE USER APPLIES:
 When the user applies edits made in the canvas's Design panel, the message is a <canvas-edits> block. Each <edit> is one element they edited: the component it's in (name, file, preview URL, and the frame's size, as in <canvas-selection>), the <element> as it was when they started editing it, read as in <canvas-selection>, then each change as "Property: before → after", as a design tool says it (sizes in CSS pixels; Fixed, Hug and Fill say how it's sized; colors are hex with their opacity), and "previewed as:" the CSS the canvas showed it with, over the page. Make each change real in the code, written the way that code writes its styles (its Tailwind classes, its CSS), not by pasting the preview's CSS. Apply each change on that element and nothing else: the preview showed the edit on that one element only. Make the narrowest change that does it. Don't change a shared component's file, which would change every use of it; change how the previewed component uses it, at the last location in path. When the element is one of several rendered from the same place (repeated:, or "(2 of 3)" in path), make the change apply to that one only, as that code would single it out (a prop, a className, a condition on its item). Do it without asking about scope or explaining this rule, unless there's no way to change that element alone: then say so in the chat and ask before changing more.
 
 Current workspace directory: ${workspacePath}
-`,
+${workspaceInstructions}`,
         },
         permissionMode: "bypassPermissions",
         canUseTool,

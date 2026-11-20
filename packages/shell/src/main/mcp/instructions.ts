@@ -1,9 +1,9 @@
 // The server's guidance, all there is (no guide tool): what a client shows
 // its agent on connecting. Under 2,000 characters, as Claude Code cuts
 // instructions at 2,048.
-export const INSTRUCTIONS = `Antidraw is a design canvas where every frame is a real React component, rendered live by the workspace's Vite dev server.
+export const INSTRUCTIONS = `Antidraw is a design canvas where every frame is a real component, rendered live by the workspace's Vite dev server.
 
-Call get_active_workspace first. Work in its sourcePath with your own file tools. One frame = one .tsx file with a default-exported component in src/components/user-components/; the file's name is the frame's. A new file is a new frame, and frames update live on save.
+Call get_active_workspace first. Work in its sourcePath with your own file tools. One frame = one .tsx file with a default-exported component in src/components/user-components/; the file's name is the frame's. A new file is a new frame, and frames update live on save. Frames are React unless the workspace's AGENTS.md, which you should read first, says otherwise.
 
 What the user wants is on the canvas:
 - get_comments: notes pinned on frames, each with the element under its pin and where that's written.

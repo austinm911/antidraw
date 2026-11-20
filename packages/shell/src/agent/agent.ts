@@ -16,7 +16,7 @@ import {
 import { markupOf, openingTag } from "./markup"
 import { createOverlay } from "./overlay"
 import { createPreviews, readStyle } from "./design"
-import { reactParent, renderedWithin } from "./react"
+import { renderedWithin, treeParent } from "./tree"
 
 // The shell's agent in a preview frame: it finds, measures and keeps track
 // of elements for the shell, and while one of the shell's tools is on, takes
@@ -73,7 +73,7 @@ export function startInspector(container: HTMLElement, componentName: string, pr
   const parentOf = (el: Element): Element | null => {
     const parent = el.parentElement
     if (parent === container || inside(parent)) return parent
-    return container.contains(el) ? null : reactParent(el, container)
+    return container.contains(el) ? null : treeParent(el, container)
   }
 
   // What's under a point, as DevTools sees it: while a tool is on, the
@@ -218,7 +218,7 @@ export function startInspector(container: HTMLElement, componentName: string, pr
     const all = withLoc(locOf(el)).filter((m) => !scope || scope.contains(m) || isWithin(m, scope))
     return { index: all.indexOf(el), count: all.length }
   }
-  // Inside `scope` as React has it: in its DOM, or in a portal rendered from it.
+  // Inside `scope` as its framework has it: in its DOM, or in a portal rendered from it.
   const isWithin = (el: Element, scope: Element) => {
     for (let node: Element | null = el; inside(node); node = parentOf(node)) if (node === scope) return true
     return false
